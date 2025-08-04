@@ -1,0 +1,5 @@
+{
+  "last_device_address": "EE:92:5F:B8:86:55",
+  "device_discover_delay": 3.0,
+  "conn_retry_interval": 1.0
+}
