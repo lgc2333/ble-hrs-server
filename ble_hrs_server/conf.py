@@ -7,6 +7,11 @@ CONFIG_FILE = Path.cwd() / "config.json"
 
 
 class Config(BaseModel):
+    log_level: str = "INFO"
+    server_host: str = "127.0.0.1"
+    server_port: int = 11642
+    server_cors_origins: list[str] = ["*"]
+
     last_device_address: str | None = None
     device_discover_delay: float = 3.0
     conn_retry_interval: float = 1.0
@@ -39,9 +44,9 @@ else:
         def init(self) -> Config:
             if not CONFIG_FILE.exists():
                 self._config = Config()
-                self.save()
             else:
                 self._config = Config.model_validate_json(CONFIG_FILE.read_text("u8"))
+            self.save()
             return self._config
 
         def save(self) -> None:
