@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect, status as c
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .conf import config
@@ -97,6 +98,12 @@ async def _(ws: WebSocket):
 
 
 app.include_router(api_router)
+
+if config.server_static_dir:
+    app.mount(
+        "/",
+        StaticFiles(directory=config.server_static_dir, html=True),
+    )
 
 
 def run():

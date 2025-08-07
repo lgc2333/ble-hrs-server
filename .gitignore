@@ -283,3 +283,4 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,intellij+all
 
 private
+config.json

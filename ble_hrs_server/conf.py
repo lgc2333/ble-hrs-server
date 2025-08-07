@@ -11,6 +11,7 @@ class Config(BaseModel):
     server_host: str = "127.0.0.1"
     server_port: int = 11642
     server_cors_origins: list[str] = ["*"]
+    server_static_dir: Path | None = Path.cwd() / "web/packages/frontend/dist"
 
     last_device_address: str | None = None
     device_discover_delay: float = 3.0

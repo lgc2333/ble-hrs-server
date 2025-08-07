@@ -27,7 +27,11 @@ const currHeartRate = computed(() => {
 
 const getMinT = () => Date.now() - chartTimeWindow
 
-const ws = createWs('ws://127.0.0.1:11642', '/api/v1/ws', {})
+const ws = createWs(
+  import.meta.env.VITE_API_URL || window.location.href.replace(/^http/, 'ws'),
+  '/api/v1/ws',
+  {},
+)
 
 ws.addEventListener('message', (e) => {
   const {
@@ -220,6 +224,8 @@ watch([connected, currHeartRate], ([newConnected, newCurrHeartRate]) => {
       flex="~ 1"
       :class="connected ? '' : 'filter-grayscale-100'"
       transition="~ duration-500"
+      w="inherit"
+      h="inherit"
     >
       <div
         w="64px"
@@ -228,14 +234,14 @@ watch([connected, currHeartRate], ([newConnected, newCurrHeartRate]) => {
         items="center"
         justify="center"
         gap-2
-        drop-shadow="lg color-#fe251b44"
+        drop-shadow="lg color-#c5110444"
       >
         <Icon ref="heartRef" icon="el:heart" w="64px" h="64px" color="#fe251b" />
         <span
-          text-3xl
+          text-4xl
           color="#fe251b"
-          font="medium"
-          text-stroke="2 white"
+          font="bold"
+          text-stroke="4 #fffc"
           paint-order-sfm
         >
           {{ currHeartRate || '--' }}
