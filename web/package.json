@@ -1,0 +1,26 @@
+{
+  "name": "@root/ble-hrs-server",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "packageManager": "yarn@4.9.2",
+  "scripts": {
+    "build": "yarn workspaces foreach -Wpt run build",
+    "clean": "yarn workspaces foreach -Wpt run clean"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^5.2.0",
+    "@prettier/plugin-xml": "^3.4.2",
+    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/node": "^24.2.0",
+    "eslint": "^9.32.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "vue": "^3.5.18"
+  }
+}

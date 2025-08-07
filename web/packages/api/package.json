@@ -1,0 +1,24 @@
+{
+  "name": "ble-hrs-server-api",
+  "version": "0.1.0",
+  "packageManager": "yarn@4.9.2",
+  "description": "",
+  "author": "LgCookie <lgc2333@126.com>",
+  "license": "MIT",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b && dumble",
+    "clean": "rimraf dist tsconfig.tsbuildinfo"
+  },
+  "devDependencies": {
+    "dumble": "^0.2.2",
+    "esbuild": "^0.25.8",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.2"
+  }
+}
