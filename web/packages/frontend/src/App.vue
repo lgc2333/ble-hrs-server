@@ -37,7 +37,7 @@ const curr = computed(() => {
 const currRateDisplay = computed(() => (connected ? curr.value.rate : 0) || '--')
 
 const ws = createWs(
-  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV && import.meta.env.VITE_API_URL) ||
     new URLSearchParams(window.location.search).get('apiUrl') ||
     window.location.href.replace(/^http/, 'ws'),
   '/api/v1/ws',
