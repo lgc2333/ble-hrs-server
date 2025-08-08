@@ -131,10 +131,12 @@ const chartOptions = reactive({
       smooth: true,
       color: '#fe251b',
       symbol: 'circle',
-      symbolSize: 4,
+      symbolSize: 6,
       areaStyle: {
-        opacity: 0.4,
+        opacity: 0.7,
+        color: '#c51104',
       },
+      lineStyle: { width: 4 },
       markLine: {
         data: [
           {
@@ -240,16 +242,16 @@ watch(curr, (newCurr) => {
         items="center"
         justify="center"
         gap-2
-        drop-shadow="lg color-#c5110444"
       >
-        <Icon ref="heartRef" icon="el:heart" w="56px" h="56px" color="#fe251b" />
-        <span
-          text-4xl
+        <Icon
+          ref="heartRef"
+          icon="el:heart"
+          w="56px"
+          h="56px"
           color="#fe251b"
-          font="bold"
-          text-stroke="4 #fffc"
-          paint-order-sfm
-        >
+          drop-shadow="[0_0_6px_#c51104]"
+        />
+        <span text-4xl color="#fe251b" font="bold" text-shadow="lg color-[#c51104]">
           {{ currRateDisplay }}
         </span>
       </div>
