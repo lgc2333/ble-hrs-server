@@ -132,7 +132,7 @@ const chartOptions = reactive({
       symbol: 'none',
       color: '#fe251b',
       areaStyle: {
-        opacity: 0.7,
+        opacity: 0.5,
         color: '#c51104',
       },
       lineStyle: { width: 4 },
@@ -162,10 +162,7 @@ const chartOptions = reactive({
           // textBorderWidth: 2,
           fontSize: 14,
         },
-        lineStyle: {
-          type: 'solid',
-          color: '#fffa',
-        },
+        lineStyle: { type: 'solid' },
       },
     },
   ],
