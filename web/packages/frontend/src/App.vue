@@ -15,17 +15,26 @@ const chartTimeWindow = 60000
 const chartTimeWindowPlus = 3000
 const chartTimeAxisSplit = 3
 
-const chartMinHeartRate = 50
+const chartMinHeartRate = 60
 const chartMaxHeartRate = 90
+const chartMinHeartRateInterval = 5
 
 const connected = ref(false)
-const data = reactive([] as [number, number][])
-const currHeartRate = computed(() => {
-  if (!connected.value || data.length === 0) return 0
-  return data[data.length - 1][1]
+const data = reactive<[number, number][]>([])
+const curr = computed(() => {
+  const minT = Date.now() - chartTimeWindow
+  const minTPlus = minT - chartTimeWindowPlus
+  const rate = data.length ? data[data.length - 1][1] : 0
+  let minRate: number = 0
+  let maxRate: number = 0
+  for (const d of data) {
+    if (d[0] < minT) continue
+    if (!minRate || d[1] < minRate) minRate = d[1]
+    if (!maxRate || d[1] > maxRate) maxRate = d[1]
+  }
+  return { minT, minTPlus, rate, minRate, maxRate }
 })
-
-const getMinT = () => Date.now() - chartTimeWindow
+const currRateDisplay = computed(() => (connected ? curr.value.rate : 0) || '--')
 
 const ws = createWs(
   import.meta.env.VITE_API_URL || window.location.href.replace(/^http/, 'ws'),
@@ -41,7 +50,7 @@ ws.addEventListener('message', (e) => {
     connected.value = msg.connected
   } else {
     data.push([msg.t * 1000, msg.r])
-    const minTPlus = getMinT() - chartTimeWindowPlus
+    const { minTPlus } = curr.value
     const outDatedIndex = data.findIndex((d) => d[0] < minTPlus)
     if (outDatedIndex > 0) data.splice(0, outDatedIndex)
   }
@@ -63,7 +72,7 @@ const chartOptions = reactive({
   grid: {
     left: 0,
     right: 16,
-    top: 8,
+    top: 16,
     bottom: 16,
     outerBoundsMode: 'same',
     outerBoundsContain: 'axisLabel',
@@ -73,7 +82,8 @@ const chartOptions = reactive({
   },
   xAxis: {
     type: 'time',
-    min: getMinT,
+    min: () => curr.value.minT,
+    minInterval: 1000,
     splitNumber: chartTimeAxisSplit,
     axisLabel: {
       showMinLabel: true,
@@ -81,31 +91,38 @@ const chartOptions = reactive({
       showMaxLabel: true,
       alignMaxLabel: 'right',
       formatter: {
+        minute: '{H}:{mm}:{ss}',
         second: '{H}:{mm}:{ss}',
         millisecond: '{H}:{mm}:{ss}',
       },
       color: 'white',
     },
     axisLine: {
-      lineStyle: {
-        color: 'white',
-      },
+      lineStyle: { color: 'white' },
     },
   },
   yAxis: {
     type: 'value',
-    min: ({ min }) => Math.min(min, chartMinHeartRate),
-    max: ({ max }) => Math.max(max, chartMaxHeartRate),
-    minInterval: 1,
+    min: () => Math.min(curr.value.minRate, chartMinHeartRate),
+    max: () => Math.max(curr.value.maxRate, chartMaxHeartRate),
+    minInterval: chartMinHeartRateInterval,
+    axisLabel: { color: 'white' },
+    axisLine: {
+      show: true,
+      lineStyle: { color: 'white' },
+    },
+    axisTick: { show: true },
     splitLine: {
-      lineStyle: { color: 'rgba(156, 163, 175, 1)' },
+      lineStyle: {
+        type: 'dashed',
+        color: 'rgba(156, 163, 175, 1)',
+      },
     },
     minorSplitLine: {
-      show: true,
-      lineStyle: { color: 'rgba(156, 163, 175, 0.3)' },
-    },
-    axisLabel: {
-      color: 'white',
+      // show: true,
+      lineStyle: {
+        color: 'rgba(156, 163, 175, 0.6)',
+      },
     },
   },
   series: [
@@ -125,15 +142,15 @@ const chartOptions = reactive({
             label: {
               formatter: 'Min {c}',
               position: 'insideStartTop',
-              distance: [25, 4],
+              distance: [20, 0],
             },
           },
           {
             yAxis: 0,
             label: {
               formatter: 'Max {c}',
-              position: 'insideStartBottom',
-              distance: [80, 6],
+              position: 'insideEndTop',
+              distance: [20, 2],
             },
           },
         ],
@@ -146,7 +163,7 @@ const chartOptions = reactive({
         },
         lineStyle: {
           type: 'solid',
-          color: '#c51104',
+          color: '#fffa',
         },
       },
     },
@@ -155,22 +172,11 @@ const chartOptions = reactive({
 onMounted(() => {
   chartRef.value?.setOption(chartOptions)
 })
-watch(data, (newData) => {
-  if (newData.length === 0) return
-
-  const minT = getMinT()
-  let minRate: number | undefined
-  let maxRate: number | undefined
-  for (const d of newData) {
-    if (d[0] < minT) continue
-    if (!minRate || d[1] < minRate) minRate = d[1]
-    if (!maxRate || d[1] > maxRate) maxRate = d[1]
-  }
-
+watch(curr, (newCurr) => {
+  if (data.length === 0) return
   const markLine = chartOptions.series[0].markLine
-  markLine.data[0].yAxis = minRate ?? 0
-  markLine.data[1].yAxis = maxRate ?? 0
-
+  markLine.data[0].yAxis = newCurr.minRate
+  markLine.data[1].yAxis = newCurr.maxRate
   chartRef.value?.setOption({
     series: [{ data, markLine }],
   } satisfies EChartsOption)
@@ -179,9 +185,9 @@ watch(data, (newData) => {
 const heartRef = ref<InstanceType<typeof Icon>>()
 const heartAnimation = ref<Animation | null>(null)
 const heartAnimFrames = [
-  { transform: 'scale(1)', easing: 'ease-in' },
-  { transform: 'scale(0.925)', opacity: 0.925, easing: 'ease-out' },
-  { transform: 'scale(1)', easing: 'ease-in' },
+  { offset: 0, easing: 'ease-out', transform: 'scale(1)' },
+  { offset: 0.35, easing: 'ease-in', transform: 'scale(0.9375)', opacity: 0.9 },
+  { offset: 1, easing: 'ease-out', transform: 'scale(1)' },
 ] as Keyframe[]
 onMounted(() => {
   const el = heartRef.value!.$el! as SVGElement
@@ -191,11 +197,10 @@ onMounted(() => {
   })
   heartAnimation.value.pause()
 })
-watch([connected, currHeartRate], ([newConnected, newCurrHeartRate]) => {
+watch(curr, (newCurr) => {
   if (!heartAnimation.value) return
-  const shouldStart = newConnected && newCurrHeartRate > 0
-  if (shouldStart) {
-    heartAnimation.value.playbackRate = newCurrHeartRate / 60
+  if (newCurr.rate > 0) {
+    heartAnimation.value.playbackRate = newCurr.rate / 60
     heartAnimation.value.play()
   } else {
     heartAnimation.value.pause()
@@ -204,19 +209,19 @@ watch([connected, currHeartRate], ([newConnected, newCurrHeartRate]) => {
 </script>
 
 <template>
-  <div class="main" w="432px" h="164px" flex relative>
+  <div class="main" w="432px" h="172px" flex relative>
     <div
       v-if="!connected"
       absolute
       w="inherit"
       h="inherit"
-      p="x-16px t-8px b-16px"
+      p="16px"
       flex
       items="center"
       justify="center"
-      z-1
+      z="1"
     >
-      <span font-bold rd-xl p-2 bg-gray-7 bg-op-90 text-white>
+      <span font="bold" rd="xl" p="2" bg="gray-7 op-90" text="white center">
         Lost connection to device or WebSocket server
       </span>
     </div>
@@ -228,15 +233,16 @@ watch([connected, currHeartRate], ([newConnected, newCurrHeartRate]) => {
       h="inherit"
     >
       <div
-        w="64px"
-        m="l-16px r-8px t-8px b-16px"
+        m="l-8px r-0px y-16px"
+        w="80px"
+        overflow="hidden"
         flex="~ col"
         items="center"
         justify="center"
         gap-2
         drop-shadow="lg color-#c5110444"
       >
-        <Icon ref="heartRef" icon="el:heart" w="64px" h="64px" color="#fe251b" />
+        <Icon ref="heartRef" icon="el:heart" w="56px" h="56px" color="#fe251b" />
         <span
           text-4xl
           color="#fe251b"
@@ -244,10 +250,10 @@ watch([connected, currHeartRate], ([newConnected, newCurrHeartRate]) => {
           text-stroke="4 #fffc"
           paint-order-sfm
         >
-          {{ currHeartRate || '--' }}
+          {{ currRateDisplay }}
         </span>
       </div>
-      <VChart ref="chartRef" manual-update></VChart>
+      <VChart flex="1" ref="chartRef" manual-update></VChart>
     </div>
   </div>
 </template>
