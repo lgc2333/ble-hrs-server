@@ -129,9 +129,8 @@ const chartOptions = reactive({
     {
       type: 'line',
       smooth: true,
+      symbol: 'none',
       color: '#fe251b',
-      symbol: 'circle',
-      symbolSize: 6,
       areaStyle: {
         opacity: 0.7,
         color: '#c51104',
