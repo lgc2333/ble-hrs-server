@@ -195,9 +195,9 @@ onMounted(() => {
   })
   heartAnimation.value.pause()
 })
-watch(curr, (newCurr) => {
+watch([connected, curr], ([newConnected, newCurr]) => {
   if (!heartAnimation.value) return
-  if (newCurr.rate > 0) {
+  if (newConnected && newCurr.rate > 0) {
     heartAnimation.value.playbackRate = newCurr.rate / 60
     heartAnimation.value.play()
   } else {
