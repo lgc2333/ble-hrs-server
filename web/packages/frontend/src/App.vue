@@ -186,8 +186,11 @@ const heartRef = ref<InstanceType<typeof Icon>>()
 const heartAnimation = ref<Animation | null>(null)
 const heartAnimFrames = [
   { offset: 0, easing: 'ease-out', transform: 'scale(1)' },
-  { offset: 0.35, easing: 'ease-in', transform: 'scale(0.9375)', opacity: 0.9 },
-  { offset: 1, easing: 'ease-out', transform: 'scale(1)' },
+  { offset: 0.08, easing: 'ease-in', transform: 'scale(0.80)' },
+  { offset: 0.14, easing: 'ease-out', transform: 'scale(0.92)' },
+  { offset: 0.22, easing: 'ease-in', transform: 'scale(0.86)' },
+  { offset: 0.32, easing: 'ease-out', transform: 'scale(1)' },
+  { offset: 1, transform: 'scale(1)' },
 ] as Keyframe[]
 onMounted(() => {
   const el = heartRef.value!.$el! as SVGElement

@@ -16,9 +16,9 @@
     "clean": "rimraf dist tsconfig.tsbuildinfo"
   },
   "devDependencies": {
-    "dumble": "^0.2.2",
-    "esbuild": "^0.25.8",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.9.2"
+    "dumble": "^0.2.3",
+    "esbuild": "^0.28.0",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3"
   }
 }

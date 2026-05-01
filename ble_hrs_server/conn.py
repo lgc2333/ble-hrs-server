@@ -108,7 +108,9 @@ class BaseBLEConnection(ABC):
                     self._reconnect_task,
                     timeout=self.shutdown_timeout,
                 )
-            except (TimeoutError, asyncio.CancelledError):
+            except asyncio.CancelledError:
+                pass
+            except TimeoutError:
                 logger.warning(
                     f"Reconnect task did not finish in {self.shutdown_timeout}s",
                 )
