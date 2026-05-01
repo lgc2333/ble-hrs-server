@@ -7,6 +7,8 @@ from typing import Any, NamedTuple, Self, override
 from bleak import BleakClient, BleakScanner
 from cookit import Signal, safe_exc_handler
 
+from .log import logger
+
 type Co[T] = Coroutine[Any, Any, T]
 
 
@@ -14,11 +16,13 @@ class BaseBLEConnection(ABC):
     def __init__(
         self,
         address: str,
+        shutdown_timeout: float = 5.0,
         retry_interval: float = 1.0,
         sig_exc_handler: Callable[[Signal, Exception], Co[Any]] = safe_exc_handler,
         **client_kw,
     ) -> None:
         self.address = address
+        self.shutdown_timeout = shutdown_timeout
         self.retry_interval = retry_interval
         self.client_kw = client_kw
 
@@ -99,12 +103,29 @@ class BaseBLEConnection(ABC):
 
         if self._reconnect_task:
             self._reconnect_task.cancel()
+            try:
+                await asyncio.wait_for(
+                    self._reconnect_task,
+                    timeout=self.shutdown_timeout,
+                )
+            except (TimeoutError, asyncio.CancelledError):
+                logger.warning(
+                    f"Reconnect task did not finish in {self.shutdown_timeout}s",
+                )
         self._reconnect_task = None
 
         client = self.client
         self.client = None
         if client and client.is_connected:
-            await client.disconnect()
+            try:
+                await asyncio.wait_for(
+                    client.disconnect(),
+                    timeout=self.shutdown_timeout,
+                )
+            except TimeoutError:
+                logger.warning(
+                    f"Failed to disconnect client in {self.shutdown_timeout}s",
+                )
 
     async def __aenter__(self):
         if not self.started:
@@ -132,9 +153,9 @@ class HRMData(NamedTuple):
 
 def parse_hrm_pkg(pkg: bytearray) -> HRMData:
     flag = pkg[0]
-    rate_is_u16 = flag & 0b00001 != 0
-    sensor_contact_supported = flag & 0b00100 != 0
-    sensor_contact = (flag & 0b00010 != 0) if sensor_contact_supported else None
+    rate_is_u16 = (flag & 0b00001) != 0
+    sensor_contact_supported = (flag & 0b00100) != 0
+    sensor_contact = ((flag & 0b00010) != 0) if sensor_contact_supported else None
 
     heart_rate = pkg[1]
     if rate_is_u16:
@@ -147,11 +168,18 @@ class BLEHRSConnection(BaseBLEConnection):
     def __init__(
         self,
         address: str,
+        shutdown_timeout: float = 5.0,
         retry_interval: float = 1.0,
         sig_exc_handler: Callable[[Signal, Exception], Co[Any]] = safe_exc_handler,
         **client_kw,
     ) -> None:
-        super().__init__(address, retry_interval, sig_exc_handler, **client_kw)
+        super().__init__(
+            address,
+            shutdown_timeout=shutdown_timeout,
+            retry_interval=retry_interval,
+            sig_exc_handler=sig_exc_handler,
+            **client_kw,
+        )
         self.data_received_sig = Signal[[Self, HRMData, float], Any, Any](
             sig_exc_handler,
         )

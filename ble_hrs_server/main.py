@@ -34,7 +34,7 @@ async def select_device():
 
     while True:
         logger.info("Select a device by number: ")
-        choice = input("INPUT> ")
+        choice = input("INPUT> ")  # noqa: ASYNC250
         if not choice.isdigit():
             logger.error("Please enter a valid number")
             continue

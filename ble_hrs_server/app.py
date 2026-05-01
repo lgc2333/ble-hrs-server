@@ -11,17 +11,13 @@ from .conn import BLEHRSConnection, HRMData
 from .log import LOGGING_CONFIG
 from .main import init
 
-_curr_conn: BLEHRSConnection
-
 
 @asynccontextmanager
-async def app_lifespan(_: FastAPI):
-    global _curr_conn
-
+async def app_lifespan(app: FastAPI):
     conn = await init()
     if not conn:
         raise RuntimeError("No device found")
-    _curr_conn = conn
+    app.state.conn = conn
 
     async with conn:
         yield
@@ -56,34 +52,41 @@ class WsHRMData(BaseModel):
 
 @api_router.websocket("/ws")
 async def _(ws: WebSocket):
-    if not _curr_conn.started:
+    conn: BLEHRSConnection = ws.app.state.conn
+
+    if not conn.started:
         await ws.close(code=c.WS_1011_INTERNAL_ERROR, reason="Connection not started")
         return
 
     await ws.accept()
     await ws.send_text(
-        WsHRMConnectionState(connected=_curr_conn.connected).model_dump_json(),
+        WsHRMConnectionState(connected=conn.connected).model_dump_json(),
     )
 
-    @_curr_conn.prepared_sig.connect
     async def _prepared(_: BLEHRSConnection):
         await ws.send_text(WsHRMConnectionState(connected=True).model_dump_json())
 
-    @_curr_conn.connection_lost_sig.connect
     async def _lost(_: BLEHRSConnection):
         await ws.send_text(WsHRMConnectionState(connected=False).model_dump_json())
 
-    @_curr_conn.data_received_sig.connect
     async def _data(_: BLEHRSConnection, data: HRMData, t: float):
         r, s = data
         await ws.send_text(WsHRMData(t=t, r=r, s=s).model_dump_json())
 
-    @_curr_conn.shutting_down_sig.connect
     async def _shutting_down(_: BLEHRSConnection):
         await ws.close(
             code=c.WS_1012_SERVICE_RESTART,
             reason="Device connection shutting down",
         )
+
+    slots = [
+        (conn.prepared_sig, _prepared),
+        (conn.connection_lost_sig, _lost),
+        (conn.data_received_sig, _data),
+        (conn.shutting_down_sig, _shutting_down),
+    ]
+    for sig, handler in slots:
+        sig.connect(handler)
 
     try:
         while True:
@@ -91,10 +94,8 @@ async def _(ws: WebSocket):
     except WebSocketDisconnect:
         pass
     finally:
-        _curr_conn.prepared_sig.slots.remove(_prepared)
-        _curr_conn.connection_lost_sig.slots.remove(_lost)
-        _curr_conn.data_received_sig.slots.remove(_data)
-        _curr_conn.shutting_down_sig.slots.remove(_shutting_down)
+        for sig, handler in slots:
+            sig.slots.remove(handler)
 
 
 app.include_router(api_router)
